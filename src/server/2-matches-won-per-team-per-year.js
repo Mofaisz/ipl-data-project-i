@@ -8,24 +8,25 @@ const deliveries = csvToJson("../data/deliveries.csv");
 
 //Number of matches won per team per year in IPL.
 function matchesWonPerTeamPerYear() {
-  //Creates an empty object
-  const result = {};
-  // Iterating over the value of matches
-  for (let value of matches) {
-    // checks if team is initialized or not
-    if (!result[value.winner]) {
-      // if it is not initialise with empty object
-      result[value.winner] = {};
+  const result = matches.reduce((accumulator, value) => {
+    // checks if season is added as key or not
+    if (!accumulator[value.season]) {
+      // if not add season as key and create an empty object
+      accumulator[value.season] = {};
     }
-    // checks if year is created as key or not if not create it
-    if (!result[value.winner][value.season]) {
-      result[value.winner][value.season] = 0;
+    // checks again if winning team is added as key for season or not
+    if (!accumulator[value.season][value.winner]) {
+      accumulator[value.season][value.winner] = 0;
     }
-    result[value.winner][value.season] += 1;
-  }
-  // return the result
+    // if winner is found increment by 1
+    accumulator[value.season][value.winner] += 1;
+    // returns accumulator
+    return accumulator;
+  }, {});
   return result;
 }
+
+console.log(matchesWonPerTeamPerYear());
 
 // Converting js file into json file and creating a write file as output of the solution
 fs.writeFileSync(
