@@ -5,48 +5,49 @@ const deliveries = csvToJson("../data/deliveries.csv");
 
 // 1. Extract match IDs for the 2015 season
 function top10EconomicalBowlersYear2015() {
-  // Array to store match IDs for 2015 season
-  const idOf2015 = [];
-  for (let value of matches) {
-    if (value.season == "2015") {
-      // Check if the season is 2015
-      idOf2015.push(value.id);
-    }
-  }
+  // To store match IDs for 2015 season
+  const idOf2015 = matches
+    .filter((val) => {
+      return val.season === "2015";
+    })
+    .map((value) => {
+      return value.id;
+    });
 
-  // 2. Aggregate bowler data based on deliveries in 2015 matches
-  let bowlerData = {};
-  for (let id of idOf2015) {
-    // Iterate through match IDs for 2015
-    for (let element of deliveries) {
-      // Iterate through deliveries
-      if (element.match_id == id) {
-        // Check if the delivery belongs to the current match
-        const isValidBall =
-          Number(element.wide_runs) === 0 && Number(element.noball_runs) == 0; // Determine if the ball is valid (not wide or no-ball)
-        if (!bowlerData[element.bowler]) {
-          // Initialize bowler data if not present
-          bowlerData[element.bowler] = { runs: 0, balls: 0 };
+  // Aggregate bowler data based on deliveries in 2015 matches
+  let bowlerData = idOf2015.reduce((accumulator, value) => {
+    deliveries.forEach((element) => {
+      // checks if both the id is matching or not
+      if (element.match_id == value) {
+        //  to store key as bowler
+        if (!accumulator[element.bowler]) {
+          accumulator[element.bowler] = { runs: 0, balls: 0 };
         }
-        bowlerData[element.bowler].runs += Number(element.total_runs);
-        if (isValidBall) {
-          // Increment ball count for valid deliveries
-          bowlerData[element.bowler].balls += 1;
+        // if key as bowler is added if it is increment the runs
+        accumulator[element.bowler].runs += Number(element.total_runs);
+        // checks if ball is valid or not if it is increment by 1
+        if (
+          Number(element.wide_runs) === 0 &&
+          Number(element.noball_runs) == 0
+        ) {
+          accumulator[element.bowler].balls += 1;
         }
       }
-    }
-  }
+    });
+    // returns the accumulator
+    return accumulator;
+  }, {});
 
-  // 3. Calculate the economy for each bowler
-  const economyOfBowler = [];
-  for (let bowler in bowlerData) {
-    const runs = bowlerData[bowler].runs; // Total runs conceded by the bowler
-    const bowls = bowlerData[bowler].balls; // Total balls bowled
-    const overs = bowls / 6; // Convert balls to overs
-    let economy = parseFloat(runs) / parseFloat(overs);
+  // Calculate the economy for each bowler
+  const economyOfBowler = Object.keys(bowlerData).reduce((accu, bowler) => {
+    const runs = bowlerData[bowler].runs;
+    const balls = bowlerData[bowler].balls;
+    const overs = balls / 6;
+    const economy = parseFloat(runs) / parseFloat(overs);
     // Store bowler name and economy rate
-    economyOfBowler.push({ bowler: bowler, economy: economy }); 
-  }
+    accu.push({ bowler: bowler, economy: economy });
+    return accu;
+  }, []);
 
   // 4. Sort bowlers by economy in ascending order
   economyOfBowler.sort((a, b) => a.economy - b.economy);
@@ -56,7 +57,6 @@ function top10EconomicalBowlersYear2015() {
   return top10; // Return the top 10 economical bowlers
 }
 // console.log(top10EconomicalBowlersYear2015());
-
 
 fs.writeFileSync(
   "/home/faiz/ipl_data_project_1/src/public/output/4-top-10-economical-bowlers-2016.json",
