@@ -1,67 +1,74 @@
 const fs = require("fs");
 const csvToJson = require("../utils/csvtojson.js");
+const { match } = require("assert");
 const matches = csvToJson("../data/matches.csv");
 const deliveries = csvToJson("../data/deliveries.csv");
 function strikeRateBatsmanEachSeason() {
   // 1. Group match IDs by season
-  const yearAndId = {};
-  for (let value of matches) {
-    if (!yearAndId[value.season]) {
-      yearAndId[value.season] = []; 
+  const yearAndId = matches.reduce((accumulator, value) => {
+    if (!accumulator[value.season]) {
+      accumulator[value.season] = [];
     }
     // Collect match IDs for the season
-    yearAndId[value.season].push(value.id); 
-  }
+    accumulator[value.season].push(value.id);
+    return accumulator;
+  }, {});
 
   // 2. Aggregate runs and balls for each batsman per season
-  const resultObj = {};
-  for (let year in yearAndId) {
-    for (let element of deliveries) {
-      for (let id of yearAndId[year]) {
-        if (element.match_id == id) {
-          // Check if the delivery belongs to the current match ID
-          if (!resultObj[year]) {
-            resultObj[year] = {}; // Initialize year object if not present
+  const resultObj = Object.keys(yearAndId).reduce((accumulator, year) => {
+    deliveries.forEach((element) => {
+      id = yearAndId[year];
+      id.forEach((val) => {
+        if (element.match_id == val) {
+          if (!accumulator[year]) {
+            // Initialize year object if not present
+            accumulator[year] = {};
           }
-          if (!resultObj[year][element.batsman]) {
-            resultObj[year][element.batsman] = { runs: 0, balls: 0 }; // Initialize batsman data
+          if (!accumulator[year][element.batsman]) {
+            // Initialize batsman data
+            accumulator[year][element.batsman] = { runs: 0, balls: 0 };
           }
-
           // Update runs scored by the batsman
-          resultObj[year][element.batsman].runs += Number(element.batsman_runs);
-
+          accumulator[year][element.batsman].runs += Number(
+            element.batsman_runs
+          );
           // Update ball count only for valid deliveries (not wide or no-ball)
           if (element.wide_runs == 0 && element.noball_runs == 0) {
-            resultObj[year][element.batsman].balls += 1;
+            accumulator[year][element.batsman].balls += 1;
           }
         }
-      }
-    }
-  }
+      });
+    });
+    return accumulator;
+  }, {});
 
-  // 3. Calculate strike rate for each batsman per season
-  const realResult = {};
-  for (let season in resultObj) {
-    let players = resultObj[season];
-    for (let player in players) {
+  //calculate strike rate of batsman
+  const realResult = Object.keys(resultObj).reduce((accumulator, year) => {
+    let players = resultObj[year];
+    Object.keys(players).forEach((player) => {
       // Total runs scored by the batsman
       let runs = players[player].runs;
       // Total balls faced by the batsman
       let balls = players[player].balls;
-      // calculate economy
       let strikeRate = (parseInt(runs) / parseInt(balls)) * 100;
-      if (!realResult[season]) {
-        realResult[season] = {}; // Initialize season object if not present
+      // Initialize season object if not present
+      if (!accumulator[year]) {
+        accumulator[year] = {};
       }
-      if (!realResult[season][player]) {
-        realResult[season][player] = {}; // Initialize player data
+      // Initialize player data
+      if (!accumulator[year][player]) {
+        accumulator[year][player] = {};
       }
       // Store the calculated strike rate
-      realResult[season][player] = { strikeRate: strikeRate };
-    }
-  }
+      accumulator[year][player] = { strikeRate: strikeRate };
+    });
+    return accumulator;
+  }, {});
+
   return realResult;
 }
+
+// console.log(strikeRateBatsmanEachSeason());
 
 fs.writeFileSync(
   "/home/faiz/ipl_data_project_1/src/public/output/7-strike-rate-of-batsman-for-each-season.json",
