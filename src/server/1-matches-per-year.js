@@ -5,16 +5,18 @@ const csvToJson = require("../utils/csvtojson.js");
 const matches = csvToJson("../data/matches.csv");
 
 function matchesPerYear() {
-  // Initializes an empty object with name result
-  const result = {};
-  // Iterates the value of matches
-  for (let values of matches) {
-    if (!result[values.season]) {
-      result[values.season] = 0;
+  const result = matches.reduce((accumulator, value) => {
+    if (!accumulator[value.season]) {
+      //checks if season is addes ak key or not
+      accumulator[value.season] = 0;
     }
     // Increase the season by 1
-    result[values.season] += 1;
-  }
+    accumulator[value.season] += 1;
+
+    //returns the accumulator
+    return accumulator;
+  }, {});
+
   return result;
 }
 
